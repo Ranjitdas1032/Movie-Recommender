@@ -1,0 +1,30 @@
+{% extends "myapp/base/base.html" %}
+{% load static %}
+
+{% block title %}Movie Form{% endblock title %}
+
+{% block content %}
+<div class="movie-container">
+    <div class="container d-flex justify-content-center">
+        <div class="form-container">
+            <h3 class="form-title">Add New Movie</h3>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="form-group">
+                    <label>{{ field.label_tag }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Add Movie</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

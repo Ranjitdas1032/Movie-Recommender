@@ -1,0 +1,193 @@
+{% extends "myapp/base/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show auto-dismiss" role="alert">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
+<a href="{%url 'home'%}"><h2 class="text-success">Back</h2></a>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-5">
+            <img src="{{ movie.poster.url }}" alt="{{ movie.name }}" class="img-fluid rounded shadow">
+        </div>
+        <div class="col-md-7">
+            <h2>{{ movie.name }}</h2>
+            <p><strong>Release Date:</strong> {{ movie.DateOfRelease }}</p>
+            <p><strong>Rotten Tomatoes Score:</strong> {{ movie.RottenTomatoes }}%</p>
+            <p><strong>Box Office Collection:</strong> ${{ movie.BoxOfficeCollection|intcomma }}</p>
+            <p><strong>Rating:</strong> {{ movie.rating.type }}</p>
+            <p><strong>Category:</strong> {{ movie.category.type }}</p>
+            <p><strong>Director:</strong> {{ movie.director.name }}</p>
+            <p><strong>Actors:</strong>
+                {% for actor in movie.actors.all %}
+                {{ actor.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                No actors listed.
+                {% endfor %}
+            </p>
+        </div>
+    </div>
+</div>
+
+<div id="movie-id" data-movieid="{{movie.id}}"></div>
+
+<!-- Chart Cards -->
+<div class="row mt-4">
+    <!-- Rotten Tomatoes Doughnut Chart -->
+    <div class="col-md-5 mb-3">
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white py-2">Rotten Tomatoes Rating</div>
+            <div class="card-body p-3">
+                <canvas id="rottenChart" width="150" height="150" style="max-width: 100%; height: auto;"></canvas>
+            </div>
+        </div>
+    </div>
+
+   
+
+    <!-- Box Office Line Chart -->
+    <div class="col-md-5 mb-3">
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white py-2">Box Office Collection</div>
+            <div class="card-body p-3">
+                <canvas id="boxOfficeChart" width="150" height="150" style="max-width: 100%; height: auto;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr class="my-5">
+<div class="container">
+    <h4 class="mb-4">User Comments</h4>
+
+    <!-- Existing Comments -->
+    {% for comment in comments %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <h6 class="card-subtitle text-muted">{{ comment.user.username }} • {{ comment.timestamp|naturaltime }}</h6>
+            <div class="mt-2">{{ comment.content|safe }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <p class="text-muted">No comments yet. Be the first to comment!</p>
+    {% endfor %}
+
+    <!-- Add New Comment -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Leave a Comment</h5>
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary mt-2">Post Comment</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block footer %}
+<footer class="bg-dark text-white text-center py-5  mt-5">
+    <div class="container">
+        <p class="mb-0">Created with ❤️ by <strong>Ranjit Das</strong></p>
+        <small>&copy; {{ now|date:"Y" }} Movie Suggestioner. All rights reserved.</small>
+    </div>
+</footer>
+{% endblock footer %}
+
+{% block script %}
+  <script src="https://cdn.ckeditor.com/ckeditor5/39.0.0/classic/ckeditor.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const movieId = document.getElementById('movie-id').dataset.movieid;
+    const api = `/movie_chart_data/${movieId}`;
+    console.log("Fetching:", api);
+
+    fetch(api)
+    .then(res => res.json())
+    .then(data => {
+        // Rotten Tomatoes Doughnut Chart
+        const ctx1 = document.getElementById('rottenChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['Rotten Tomatoes', 'Remaining'],
+                datasets: [{
+                    data: [data.rottentomatoes, 100 - data.rottentomatoes],
+                    backgroundColor: ['#28a745', '#e9ecef'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Box Office Line Chart
+        const ctx2 = document.getElementById('boxOfficeChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: ['Opening', 'Now'],
+                datasets: [{
+                    label: 'Box Office ($)',
+                    data: [0, data.boxofficecollection],
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+});
+
+ClassicEditor
+        .create(document.querySelector('.django_ckeditor_5'))
+        .catch(error => {
+            console.error(error);
+        });
+
+
+setTimeout(() => {
+        const alerts = document.querySelectorAll('.auto-dismiss');
+        alerts.forEach(alert => {
+            alert.classList.remove('show');
+            alert.classList.add('fade'); 
+            setTimeout(() => alert.remove(), 300); 
+        });
+    }, 1000);
+
+
+</script>
+{% endblock script %}
