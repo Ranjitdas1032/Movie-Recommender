@@ -4,8 +4,10 @@
         "use" : "@vercel/python",
         "config" : { "maxLambdaSize" : "15mb" ,"runtime" : "Python3.11.4"}
     }],
-    "routes" : {
+    "routes" : [
+    {
         "src" :"/(.*)",
         "dest" : "movie_suggestioner/wsgi.py"
     }
+  ]
 }
