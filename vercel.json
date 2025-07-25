@@ -1,13 +1,22 @@
 {
-    "builds" : [{
-        "src" : "movie_suggestioner/wsgi.py",
-        "use" : "@vercel/python",
-        "config" : { "maxLambdaSize" : "15mb" ,"runtime" : "Python3.11.4"}
-    }],
-    "routes" : [
+  "version": 2,
+  "builds": [
     {
-        "src" :"/(.*)",
-        "dest" : "movie_suggestioner/wsgi.py"
+      "src": "movie_suggestioner/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/staticfiles/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "movie_suggestioner/wsgi.py"
     }
   ]
 }
